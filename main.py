@@ -17,13 +17,14 @@ MOVING_SPEED = 7
 FPS = 60
 WHITE = (255, 255, 255)
 WIDTH, HEIGHT = 1600, 900
-BACKGROUND_WIDTH = 4000 
+BACKGROUND_WIDTH = 4000
 CONTAINER_WIDTH, CONTAINER_HEIGHT = 180, 180
 TEA_DROP_WIDTH, TEA_DROP_HEIGHT = 100, int(CONTAINER_HEIGHT / 2)
 TEA_CUP_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teacup.png'),
                                        (CONTAINER_WIDTH, CONTAINER_HEIGHT))
 TEA_POT_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teapot.png'),
                                        (CONTAINER_WIDTH, CONTAINER_HEIGHT))
+
 
 class Map:
     """
@@ -32,6 +33,7 @@ class Map:
     Class Vars:         starting_dx         -   The maps left most x coordinate for sliding purposes
                         image               -   The transformed image object from inputted image path
     """
+
     def __init__(self, background_image_path):
         self.image = pygame.transform.scale(pygame.image.load(background_image_path), (BACKGROUND_WIDTH, HEIGHT))
         self.starting_dx = 0
@@ -43,9 +45,10 @@ class Map:
                                         (resets to 0 to make it loop) 
         :return:                    -   void
         """
-        self.starting_dx -= 2
         if self.starting_dx + BACKGROUND_WIDTH == WIDTH:
             self.starting_dx = 0
+        self.starting_dx -= 2
+
 
 class Container:
     """
@@ -56,6 +59,7 @@ class Container:
                         tea_drop_position   -   The tea drop pouring start point
                         teaLevel            -   The level(amount) of tea currently being held in the container
     """
+
     def __init__(self, pos_x, pos_y, image_path, tea_level):
         self.position_rect = pygame.Rect(pos_x, pos_y, CONTAINER_WIDTH, CONTAINER_HEIGHT)
         self.image = pygame.transform.scale(pygame.image.load(image_path), (CONTAINER_WIDTH, CONTAINER_HEIGHT))
@@ -78,6 +82,7 @@ class TeaDrop:
     Class Vars:     position_rect   -   The bounding rect representing the drop png
                     image           -   The transformed image object from inputted image path
     """
+
     def __init__(self, pos_x, pos_y, image_path):
         self.position_rect = pygame.Rect(pos_x, pos_y, TEA_DROP_WIDTH, TEA_DROP_HEIGHT)
         self.image = pygame.transform.scale(pygame.image.load(image_path), (TEA_DROP_WIDTH, TEA_DROP_HEIGHT))
@@ -108,6 +113,7 @@ def drop_tea(tea_drops, cup):
 def draw(window, map, obj_list, tea_drops):
     """
     draw(window, obj_list, tea_drops):
+    :param map:
     :param tea_drops:                   Qualified tea drops list to be drawn
     :param obj_list:                    Container list basically, containers to be drawn
     :param window:                      The main game window object
@@ -117,7 +123,7 @@ def draw(window, map, obj_list, tea_drops):
     window.fill(WHITE)
 
     # Draw Background
-    window.blit(map.image,  (map.starting_dx, 0))
+    window.blit(map.image, (map.starting_dx, 0))
 
     # Draw containers
     for i in obj_list:
@@ -186,7 +192,7 @@ def main():
     clock = pygame.time.Clock()
     start_time = pygame.time.get_ticks()
     run = True
-    gameMap = Map(ROOT_DIR + r'/image/Background.png')
+    game_map = Map(ROOT_DIR + r'/image/Background.png')
     cup = Container(0, 600, ROOT_DIR + r'/image/teacup.png', 0)
     pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50)
 
@@ -199,7 +205,7 @@ def main():
                 run = False
 
         now = pygame.time.get_ticks()
-        
+
         if now - start_time > 400 and pot.teaLevel > 0:
             qualified_drops.append(
                 TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
@@ -210,11 +216,11 @@ def main():
         keys_pressed = pygame.key.get_pressed()
         pot_control_listener(keys_pressed, pot)
         cup_control_listener(keys_pressed, cup)
-        gameMap.slideMap()
+        game_map.slideMap()
 
         # Update TeaDrop Position
         pot.tea_drop_position_update()
-        draw(window, gameMap, [cup, pot], qualified_drops)
+        draw(window, game_map, [cup, pot], qualified_drops)
 
     pygame.quit()
 
