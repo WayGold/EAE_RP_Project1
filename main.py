@@ -17,6 +17,7 @@ MOVING_SPEED = 7
 FPS = 60
 WHITE = (255, 255, 255)
 WIDTH, HEIGHT = 1600, 900
+BACKGROUND_WIDTH = 4000 
 CONTAINER_WIDTH, CONTAINER_HEIGHT = 180, 180
 TEA_DROP_WIDTH, TEA_DROP_HEIGHT = 100, int(CONTAINER_HEIGHT / 2)
 TEA_CUP_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teacup.png'),
@@ -24,6 +25,27 @@ TEA_CUP_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/tea
 TEA_POT_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teapot.png'),
                                        (CONTAINER_WIDTH, CONTAINER_HEIGHT))
 
+class Map:
+    """
+    Map Class     -
+    Description:        Map Obj Class for background image and obsticle hosting
+    Class Vars:         starting_dx         -   The maps left most x coordinate for sliding purposes
+                        image               -   The transformed image object from inputted image path
+    """
+    def __init__(self, background_image_path):
+        self.image = pygame.transform.scale(pygame.image.load(background_image_path), (BACKGROUND_WIDTH, HEIGHT))
+        self.starting_dx = 0
+
+    def slideMap(self):
+        """
+        tea_drop_position_update    -   Function to update the left most x coordinate of the map
+                                        object to give thge illusion of sliding and also
+                                        (resets to 0 to make it loop) 
+        :return:                    -   void
+        """
+        self.starting_dx -= 2
+        if self.starting_dx + BACKGROUND_WIDTH == WIDTH:
+            self.starting_dx = 0
 
 class Container:
     """
@@ -83,7 +105,7 @@ def drop_tea(tea_drops, cup):
     return qualified
 
 
-def draw(window, obj_list, tea_drops):
+def draw(window, map, obj_list, tea_drops):
     """
     draw(window, obj_list, tea_drops):
     :param tea_drops:                   Qualified tea drops list to be drawn
@@ -93,6 +115,9 @@ def draw(window, obj_list, tea_drops):
     """
     # Setup White Background
     window.fill(WHITE)
+
+    # Draw Background
+    window.blit(map.image,  (map.starting_dx, 0))
 
     # Draw containers
     for i in obj_list:
@@ -156,12 +181,12 @@ def main():
 
     # Initialize the game window
     window = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("PYGAME TESTER")
+    pygame.display.set_caption("Tea-Mates")
 
     clock = pygame.time.Clock()
     start_time = pygame.time.get_ticks()
     run = True
-
+    gameMap = Map(ROOT_DIR + r'/image/Background.png')
     cup = Container(0, 600, ROOT_DIR + r'/image/teacup.png', 0)
     pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50)
 
@@ -174,7 +199,7 @@ def main():
                 run = False
 
         now = pygame.time.get_ticks()
-        print(cup.teaLevel)
+        
         if now - start_time > 400 and pot.teaLevel > 0:
             qualified_drops.append(
                 TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
@@ -185,10 +210,11 @@ def main():
         keys_pressed = pygame.key.get_pressed()
         pot_control_listener(keys_pressed, pot)
         cup_control_listener(keys_pressed, cup)
+        gameMap.slideMap()
 
         # Update TeaDrop Position
         pot.tea_drop_position_update()
-        draw(window, [cup, pot], qualified_drops)
+        draw(window, gameMap, [cup, pot], qualified_drops)
 
     pygame.quit()
 
