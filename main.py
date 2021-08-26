@@ -6,6 +6,7 @@
 
 import os
 import pygame
+import logging
 from pygame.display import toggle_fullscreen
 from pygame.scrap import contains
 
@@ -35,7 +36,8 @@ class Map:
     """
 
     def __init__(self, background_image_path):
-        self.image = pygame.transform.scale(pygame.image.load(background_image_path), (BACKGROUND_WIDTH, HEIGHT))
+        self.image = pygame.transform.scale(pygame.image.load(background_image_path),
+                                            (BACKGROUND_WIDTH, HEIGHT)).convert_alpha()
         self.starting_dx = 0
 
     def slideMap(self):
@@ -226,4 +228,5 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
     main()
