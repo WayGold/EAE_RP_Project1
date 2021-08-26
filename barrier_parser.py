@@ -16,11 +16,12 @@ class BNode:
     BNode Class:
     Description:    A Node class to store barrier data
     """
-    def __init__(self, index, image_path, pos_x, tips_list):
+    def __init__(self, index, image_path, width, pos_x, tips_list):
         self.index = index
         self.image_path = image_path
         self.pos_x = pos_x
         self.tips_list = tips_list
+        self.width = width
 
     def __str__(self):
         """
@@ -50,23 +51,14 @@ def load_txt(file_path):
 
         # Extract tips data to list
         for i, data in enumerate(data_list):
-            if i not in range(0, 3):
+            if i not in range(0, 4):
                 tips_list.append(int(data))
 
         # Append Node to list
-        all_barrier_nodes.append(BNode(int(data_list[0]), data_list[1], int(data_list[2]), tips_list))
+        all_barrier_nodes.append(BNode(int(data_list[0]), data_list[1], int(data_list[2]), int(data_list[3]), tips_list))
 
     # Call str overloading function
     for node in all_barrier_nodes:
         logging.info(str(node))
 
     return all_barrier_nodes
-
-
-def main():
-    load_txt(os.path.join(ROOT_DIR, 'test_data.txt'))
-
-
-if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.INFO)
-    main()
