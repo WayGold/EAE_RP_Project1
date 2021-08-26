@@ -4,6 +4,9 @@
 # Date: Aug.24 2021
 #
 
+from collision_container import *
+from barrier import Barrier
+from barrier_parser import load_txt
 import os
 import pygame
 import logging
@@ -19,6 +22,7 @@ FPS = 60
 WHITE = (255, 255, 255)
 WIDTH, HEIGHT = 1600, 900
 BACKGROUND_WIDTH = 4000
+BACKGROUND_SPEED = 2
 CONTAINER_WIDTH, CONTAINER_HEIGHT = 180, 180
 TEA_DROP_WIDTH, TEA_DROP_HEIGHT = 100, int(CONTAINER_HEIGHT / 2)
 TEA_CUP_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teacup.png'),
@@ -35,10 +39,11 @@ class Map:
                         image               -   The transformed image object from inputted image path
     """
 
-    def __init__(self, background_image_path):
+    def __init__(self, background_image_path, barriers):
         self.image = pygame.transform.scale(pygame.image.load(background_image_path),
                                             (BACKGROUND_WIDTH, HEIGHT)).convert_alpha()
         self.starting_dx = 0
+        self.barriers = barriers
 
     def slideMap(self):
         """
@@ -49,7 +54,7 @@ class Map:
         """
         if self.starting_dx + BACKGROUND_WIDTH == WIDTH:
             self.starting_dx = 0
-        self.starting_dx -= 2
+        self.starting_dx -= BACKGROUND_SPEED
 
 
 class Container:
@@ -61,11 +66,15 @@ class Container:
                         tea_drop_position   -   The tea drop pouring start point
                         teaLevel            -   The level(amount) of tea currently being held in the container
     """
+    # 143 106
 
-    def __init__(self, pos_x, pos_y, image_path, tea_level):
-        self.position_rect = pygame.Rect(pos_x, pos_y, CONTAINER_WIDTH, CONTAINER_HEIGHT)
-        self.image = pygame.transform.scale(pygame.image.load(image_path), (CONTAINER_WIDTH, CONTAINER_HEIGHT))
-        self.tea_drop_position = (self.position_rect.x, self.position_rect.y + CONTAINER_HEIGHT / 2)
+    def __init__(self, pos_x, pos_y, image_path, tea_level, h, w):
+        self.position_rect = pygame.Rect(
+            pos_x, pos_y, 101, 87)
+        self.image = pygame.image.load(
+            image_path)
+        self.tea_drop_position = (
+            self.position_rect.x, self.position_rect.y + CONTAINER_HEIGHT / 2)
         self.teaLevel = tea_level
 
     def tea_drop_position_update(self):
@@ -74,7 +83,8 @@ class Container:
                                         (updated) position of the container
         :return:                    -   void
         """
-        self.tea_drop_position = (self.position_rect.x + 108, self.position_rect.y + 35)
+        self.tea_drop_position = (
+            self.position_rect.x + 108, self.position_rect.y + 35)
 
 
 class TeaDrop:
@@ -86,8 +96,10 @@ class TeaDrop:
     """
 
     def __init__(self, pos_x, pos_y, image_path):
-        self.position_rect = pygame.Rect(pos_x, pos_y, TEA_DROP_WIDTH, TEA_DROP_HEIGHT)
-        self.image = pygame.transform.scale(pygame.image.load(image_path), (TEA_DROP_WIDTH, TEA_DROP_HEIGHT))
+        self.position_rect = pygame.Rect(
+            pos_x, pos_y, TEA_DROP_WIDTH, TEA_DROP_HEIGHT)
+        self.image = pygame.transform.scale(pygame.image.load(
+            image_path), (TEA_DROP_WIDTH, TEA_DROP_HEIGHT))
 
 
 def drop_tea(tea_drops, cup):
@@ -126,6 +138,11 @@ def draw(window, map, obj_list, tea_drops):
 
     # Draw Background
     window.blit(map.image, (map.starting_dx, 0))
+
+    # Draw barriers
+    for barrier in map.barriers:
+        window.blit(barrier.image,
+                    (barrier.get_global_position(map.starting_dx), 0))
 
     # Draw containers
     for i in obj_list:
@@ -191,12 +208,22 @@ def main():
     window = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tea-Mates")
 
+    # Fetch Barrier data
+    barriers_data = load_txt(os.path.join(ROOT_DIR, 'barrier_data.txt'))
+    barriers = []
+
+    for bNode in barriers_data:
+        barriers.append(Barrier(bNode))
+
+    # Start game clock
     clock = pygame.time.Clock()
     start_time = pygame.time.get_ticks()
     run = True
-    game_map = Map(ROOT_DIR + r'/image/Background.png')
-    cup = Container(0, 600, ROOT_DIR + r'/image/teacup.png', 0)
-    pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50)
+
+    # Initialize game objects
+    game_map = Map(ROOT_DIR + r'/image/Background.png', barriers)
+    cup = Container(0, 600, ROOT_DIR + r'/image/teacup.png', 0, 101, 87)
+    pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50, 143, 106)
 
     qualified_drops = []
     # Main Execution Loop
@@ -219,7 +246,10 @@ def main():
         pot_control_listener(keys_pressed, pot)
         cup_control_listener(keys_pressed, cup)
         game_map.slideMap()
-
+        collision_detector(pot, cup)
+        for barrier in barriers:
+            barrier_collision_detector(pot, barrier)
+            barrier_collision_detector(cup, barrier)
         # Update TeaDrop Position
         pot.tea_drop_position_update()
         draw(window, game_map, [cup, pot], qualified_drops)
