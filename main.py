@@ -24,7 +24,7 @@ WIDTH, HEIGHT = 1600, 900
 BACKGROUND_WIDTH = 4000
 BACKGROUND_SPEED = 2
 CONTAINER_WIDTH, CONTAINER_HEIGHT = 180, 180
-TEA_DROP_WIDTH, TEA_DROP_HEIGHT = 100, int(CONTAINER_HEIGHT / 2)
+TEA_DROP_WIDTH, TEA_DROP_HEIGHT = 9, 23
 TEA_CUP_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teacup.png'),
                                        (CONTAINER_WIDTH, CONTAINER_HEIGHT))
 TEA_POT_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teapot.png'),
@@ -70,7 +70,7 @@ class Container:
 
     def __init__(self, pos_x, pos_y, image_path, tea_level, h, w):
         self.position_rect = pygame.Rect(
-            pos_x, pos_y, 101, 87)
+            pos_x, pos_y, h, w)
         self.image = pygame.image.load(
             image_path)
         self.tea_drop_position = (
@@ -84,7 +84,7 @@ class Container:
         :return:                    -   void
         """
         self.tea_drop_position = (
-            self.position_rect.x + 108, self.position_rect.y + 35)
+            self.position_rect.x + self.position_rect.width - 3, self.position_rect.y + 18)
 
 
 class TeaDrop:
@@ -248,8 +248,8 @@ def main():
         game_map.slideMap()
         collision_detector(pot, cup)
         for barrier in barriers:
-            barrier_collision_detector(pot, barrier)
-            barrier_collision_detector(cup, barrier)
+            barrier_collision_detector(pot, barrier, game_map)
+            barrier_collision_detector(cup, barrier, game_map)
         # Update TeaDrop Position
         pot.tea_drop_position_update()
         draw(window, game_map, [cup, pot], qualified_drops)
