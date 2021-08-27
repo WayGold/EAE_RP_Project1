@@ -20,6 +20,13 @@ def collision_detector(pot: Container, cup: Container):
     :return:        False if no collision happens, true otherwise
     """
 
+    if not pot.can_receive_damage or not cup.can_receive_damage or (pot.position_rect.y +
+                     pot.position_rect.height  < cup.position_rect.y) or (cup.position_rect.y +
+                     cup.position_rect.height  < pot.position_rect.y) or (pot.position_rect.x +
+                     pot.position_rect.width  < cup.position_rect.x) or (cup.position_rect.x +
+                     cup.position_rect.width  < pot.position_rect.x):
+        return False
+
     # Init Pot and Cup Vertices
     pot_vertices = [(pot.position_rect.x, pot.position_rect.y),
                     (pot.position_rect.x + pot.position_rect.width, pot.position_rect.y),
@@ -37,6 +44,8 @@ def collision_detector(pot: Container, cup: Container):
         if cup_vertices[0][0] <= vertex[0] <= cup_vertices[1][0] \
                 and cup_vertices[0][1] <= vertex[1] <= cup_vertices[2][1]:
             logging.info('cup and pot collided')
+            cup.can_receive_damage = False
+            pot.can_receive_damage = False
             return True
 
     return False
@@ -60,14 +69,16 @@ def barrier_collision_detector(container: Container, barrier: Barrier, map: Map)
 
         if len(barrier_tip_points) == 2:
             if container_top_pos_y <= barrier_tip_points[0] or container_bottom_pos_y >= barrier_tip_points[1]:
-                logging.info('collided with barrier')
+                logging.info('barrier hit')
+                container.can_receive_damage = False
                 return True
         # else condition is == 4
         else:
             if (container_top_pos_y > barrier_tip_points[0] and container_bottom_pos_y < barrier_tip_points[1]) or (container_top_pos_y > barrier_tip_points[2] and container_bottom_pos_y < barrier_tip_points[3]):
                 return False
             else:
-                logging.info('collided with barrier')
+                logging.info('barrier hit')
+                container.can_receive_damage = False
                 return True
     else:
         return False

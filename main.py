@@ -17,10 +17,13 @@ from pygame.scrap import contains
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Macros
+DAMAGE_RECEIVING_CD = 3000  # milliseconds
 MOVING_SPEED = 7
 FPS = 60
 WHITE = (255, 255, 255)
 WIDTH, HEIGHT = 1600, 900
+HEALTH_UNIT_WIDTH = 40
+HEALTH_UNIT_HEIGHT = 40
 BACKGROUND_WIDTH = 4000
 BACKGROUND_SPEED = 2
 CONTAINER_WIDTH, CONTAINER_HEIGHT = 180, 180
@@ -76,6 +79,7 @@ class Container:
         self.tea_drop_position = (
             self.position_rect.x, self.position_rect.y + CONTAINER_HEIGHT / 2)
         self.teaLevel = tea_level
+        self.can_receive_damage = True
 
     def tea_drop_position_update(self):
         """
@@ -101,6 +105,13 @@ class TeaDrop:
         self.image = pygame.transform.scale(pygame.image.load(
             image_path), (TEA_DROP_WIDTH, TEA_DROP_HEIGHT))
 
+class Health:
+    def __init__(self, image_path):
+        self.image = pygame.transform.scale(pygame.image.load(image_path),
+                                            (HEALTH_UNIT_WIDTH, HEALTH_UNIT_HEIGHT)).convert_alpha()
+        self.life_count = 3
+        self.health_bar_pos_x = 70
+        self.health_bar_pos_y = 70
 
 def drop_tea(tea_drops, cup):
     """
@@ -124,7 +135,7 @@ def drop_tea(tea_drops, cup):
     return qualified
 
 
-def draw(window, map, obj_list, tea_drops):
+def draw(window, map, obj_list, tea_drops, health):
     """
     draw(window, obj_list, tea_drops):
     :param map:
@@ -135,7 +146,7 @@ def draw(window, map, obj_list, tea_drops):
     """
     # Setup White Background
     window.fill(WHITE)
-
+    
     # Draw Background
     window.blit(map.image, (map.starting_dx, 0))
 
@@ -151,6 +162,13 @@ def draw(window, map, obj_list, tea_drops):
     # Draw tea drops
     for d in tea_drops:
         window.blit(d.image, (d.position_rect.x, d.position_rect.y))
+
+    # Draw Healthbar
+    i = 0
+    while i < health.life_count:
+        window.blit(health.image, (health.health_bar_pos_x + i * 60, health.health_bar_pos_y))
+        i += 1 
+
 
     pygame.display.update()
 
@@ -218,7 +236,11 @@ def main():
     # Start game clock
     clock = pygame.time.Clock()
     start_time = pygame.time.get_ticks()
+    damage_timer = None
     run = True
+
+    # Initialize Health Bar
+    health = Health(ROOT_DIR + r'/image/teacup.png')
 
     # Initialize game objects
     game_map = Map(ROOT_DIR + r'/image/Background.png', barriers)
@@ -245,14 +267,34 @@ def main():
         keys_pressed = pygame.key.get_pressed()
         pot_control_listener(keys_pressed, pot)
         cup_control_listener(keys_pressed, cup)
+
         game_map.slideMap()
-        collision_detector(pot, cup)
-        for barrier in barriers:
-            barrier_collision_detector(pot, barrier, game_map)
-            barrier_collision_detector(cup, barrier, game_map)
+
+        # Using the new can_receive_damage bool of containers to give some breathing room after taking a damage
+        # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds)
+        # Damage timer starts immidiately after a collision happens and counts to 3 and then can_receive_damage is set back to True
+        if cup.can_receive_damage and pot.can_receive_damage:
+            draw(window, game_map, [cup, pot], qualified_drops, health)
+            if collision_detector(pot, cup):
+                damage_timer = now
+                health.life_count -= 1
+            for barrier in barriers:
+                if barrier_collision_detector(pot, barrier, game_map) or barrier_collision_detector(cup, barrier, game_map):
+                    damage_timer = now
+                    health.life_count -= 1
+        else:
+            time_passed = now - damage_timer
+            if time_passed < 500 or (time_passed > 1000 and time_passed < 1500) or (time_passed > 2000 and time_passed < 2500):
+                draw(window, game_map, [], qualified_drops, health)
+            else:
+                draw(window, game_map, [cup, pot], qualified_drops, health)
+        # Reset the damage timer 3 seconds after getting damaged
+            if now - damage_timer > DAMAGE_RECEIVING_CD:
+                pot.can_receive_damage = True
+                cup.can_receive_damage = True
+                damage_timer = None
         # Update TeaDrop Position
         pot.tea_drop_position_update()
-        draw(window, game_map, [cup, pot], qualified_drops)
 
     pygame.quit()
 
