@@ -16,6 +16,10 @@ from pygame.scrap import contains
 # Init Root Directory
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Init Font Options
+pygame.font.init()
+myfont = pygame.font.SysFont('Showcard Gothic', 30)
+
 # Macros
 DAMAGE_RECEIVING_CD = 3000  # milliseconds
 MOVING_SPEED = 7
@@ -67,8 +71,9 @@ class Container:
     Class Vars:         position_rect       -   The bounding rect representing the container png
                         image               -   The transformed image object from inputted image path
                         tea_drop_position   -   The tea drop pouring start point
-                        teaLevel            -   The level(amount) of tea currently being held in the container
+                        tea_level            -   The level(amount) of tea currently being held in the container
     """
+
     # 143 106
 
     def __init__(self, pos_x, pos_y, image_path, tea_level, h, w):
@@ -78,7 +83,7 @@ class Container:
             image_path)
         self.tea_drop_position = (
             self.position_rect.x, self.position_rect.y + CONTAINER_HEIGHT / 2)
-        self.teaLevel = tea_level
+        self.tea_level = tea_level
         self.can_receive_damage = True
 
     def tea_drop_position_update(self):
@@ -105,6 +110,7 @@ class TeaDrop:
         self.image = pygame.transform.scale(pygame.image.load(
             image_path), (TEA_DROP_WIDTH, TEA_DROP_HEIGHT))
 
+
 class Health:
     def __init__(self, image_path):
         self.image = pygame.transform.scale(pygame.image.load(image_path),
@@ -112,6 +118,7 @@ class Health:
         self.life_count = 3
         self.health_bar_pos_x = 70
         self.health_bar_pos_y = 70
+
 
 def drop_tea(tea_drops, cup):
     """
@@ -129,15 +136,17 @@ def drop_tea(tea_drops, cup):
         # Check whether tea drops goes beyond boundary and whether it is contained by the tea cup rect
         if teaDrop.position_rect.y < HEIGHT - 1 and not cup.position_rect.contains(teaDrop.position_rect):
             qualified.append(teaDrop)
-        else:
-            cup.teaLevel += 1
+        elif cup.position_rect.contains(teaDrop.position_rect):
+            cup.tea_level += 1
 
     return qualified
 
 
-def draw(window, map, obj_list, tea_drops, health):
+def draw(window, map, obj_list, tea_drops, health, collected_tea):
     """
     draw(window, obj_list, tea_drops):
+    :param health:
+    :param collected_tea:
     :param map:
     :param tea_drops:                   Qualified tea drops list to be drawn
     :param obj_list:                    Container list basically, containers to be drawn
@@ -146,7 +155,7 @@ def draw(window, map, obj_list, tea_drops, health):
     """
     # Setup White Background
     window.fill(WHITE)
-    
+
     # Draw Background
     window.blit(map.image, (map.starting_dx, 0))
 
@@ -155,9 +164,13 @@ def draw(window, map, obj_list, tea_drops, health):
         window.blit(barrier.image,
                     (barrier.get_global_position(map.starting_dx), 0))
 
-    # Draw containers
+    # Draw Pot and Cup
     for i in obj_list:
         window.blit(i.image, (i.position_rect.x, i.position_rect.y))
+
+    # Display Game Over image
+    if not is_game_on(health.life_count):
+        window.blit(pygame.image.load(ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
 
     # Draw tea drops
     for d in tea_drops:
@@ -167,10 +180,22 @@ def draw(window, map, obj_list, tea_drops, health):
     i = 0
     while i < health.life_count:
         window.blit(health.image, (health.health_bar_pos_x + i * 60, health.health_bar_pos_y))
-        i += 1 
+        i += 1
 
+        # Init Collected Tea Display Text and Draw
+    textsurface = myfont.render('Tea Drops: ' + str(collected_tea), False, (0, 0, 0))
+    window.blit(textsurface, (1200, 70))
+    window.blit(pygame.image.load(
+        ROOT_DIR + r'/image/teadrop.png'), (1410, 70))
 
     pygame.display.update()
+
+
+def is_game_on(life_count):
+    if life_count > 0:
+        return True
+    else:
+        return False
 
 
 def pot_control_listener(keys, pot):
@@ -236,6 +261,7 @@ def main():
     # Start game clock
     clock = pygame.time.Clock()
     start_time = pygame.time.get_ticks()
+    last_tea_drop_time = start_time
     damage_timer = None
     run = True
 
@@ -247,6 +273,8 @@ def main():
     cup = Container(0, 600, ROOT_DIR + r'/image/teacup.png', 0, 101, 87)
     pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50, 143, 106)
 
+    collected_tea = 0
+
     qualified_drops = []
     # Main Execution Loop
     while run:
@@ -256,45 +284,47 @@ def main():
                 run = False
 
         now = pygame.time.get_ticks()
+        if is_game_on(health.life_count):
+            if now - last_tea_drop_time > 400 and pot.tea_level > 0:
+                qualified_drops.append(
+                    TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
+                pot.tea_level -= 1
+                last_tea_drop_time = now
+            collected_tea = cup.tea_level
+            qualified_drops = drop_tea(qualified_drops, cup)
+            keys_pressed = pygame.key.get_pressed()
+            pot_control_listener(keys_pressed, pot)
+            cup_control_listener(keys_pressed, cup)
 
-        if now - start_time > 400 and pot.teaLevel > 0:
-            qualified_drops.append(
-                TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
-            pot.teaLevel -= 1
-            start_time = now
-
-        qualified_drops = drop_tea(qualified_drops, cup)
-        keys_pressed = pygame.key.get_pressed()
-        pot_control_listener(keys_pressed, pot)
-        cup_control_listener(keys_pressed, cup)
-
-        game_map.slideMap()
-
-        # Using the new can_receive_damage bool of containers to give some breathing room after taking a damage
-        # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds)
-        # Damage timer starts immidiately after a collision happens and counts to 3 and then can_receive_damage is set back to True
-        if cup.can_receive_damage and pot.can_receive_damage:
-            draw(window, game_map, [cup, pot], qualified_drops, health)
-            if collision_detector(pot, cup):
-                damage_timer = now
-                health.life_count -= 1
-            for barrier in barriers:
-                if barrier_collision_detector(pot, barrier, game_map) or barrier_collision_detector(cup, barrier, game_map):
+            # Using the new can_receive_damage bosol of containers to give some breathing room after taking a damage
+            # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds) Damage timer starts immediately after a
+            # collision happens and counts to 3 and then can_receive_damage is set back to True
+            if cup.can_receive_damage and pot.can_receive_damage:
+                draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea)
+                if collision_detector(pot, cup):
                     damage_timer = now
-                    health.life_count -= 1
-        else:
-            time_passed = now - damage_timer
-            if time_passed < 500 or (time_passed > 1000 and time_passed < 1500) or (time_passed > 2000 and time_passed < 2500):
-                draw(window, game_map, [], qualified_drops, health)
+                    health.life_count -= 3
+                for barrier in barriers:
+                    if barrier_collision_detector(pot, barrier, game_map) or barrier_collision_detector(cup, barrier,
+                                                                                                        game_map):
+                        damage_timer = now
+                        health.life_count -= 1
             else:
-                draw(window, game_map, [cup, pot], qualified_drops, health)
-        # Reset the damage timer 3 seconds after getting damaged
-            if now - damage_timer > DAMAGE_RECEIVING_CD:
-                pot.can_receive_damage = True
-                cup.can_receive_damage = True
-                damage_timer = None
-        # Update TeaDrop Position
-        pot.tea_drop_position_update()
+                time_passed = now - damage_timer
+                if time_passed < 500 or (1000 < time_passed < 1500) or (2000 < time_passed < 2500):
+                    draw(window, game_map, [], qualified_drops, health, collected_tea)
+                else:
+                    draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea)
+                # Reset the damage timer 3 seconds after getting damaged
+                if now - damage_timer > DAMAGE_RECEIVING_CD:
+                    pot.can_receive_damage = True
+                    cup.can_receive_damage = True
+                    damage_timer = None
+            # Update TeaDrop Position
+            pot.tea_drop_position_update()
+        else:
+            draw(window, game_map, [], [], health, collected_tea)
+        game_map.slideMap()
 
     pygame.quit()
 
