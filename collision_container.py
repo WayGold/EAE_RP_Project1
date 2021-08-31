@@ -21,10 +21,12 @@ def collision_detector(pot: Container, cup: Container):
     """
 
     if not pot.can_receive_damage or not cup.can_receive_damage or (pot.position_rect.y +
-                     pot.position_rect.height  < cup.position_rect.y) or (cup.position_rect.y +
-                     cup.position_rect.height  < pot.position_rect.y) or (pot.position_rect.x +
-                     pot.position_rect.width  < cup.position_rect.x) or (cup.position_rect.x +
-                     cup.position_rect.width  < pot.position_rect.x):
+                                                                    pot.position_rect.height < cup.position_rect.y) or (
+            cup.position_rect.y +
+            cup.position_rect.height < pot.position_rect.y) or (pot.position_rect.x +
+                                                                pot.position_rect.width < cup.position_rect.x) or (
+            cup.position_rect.x +
+            cup.position_rect.width < pot.position_rect.x):
         return False
 
     # Init Pot and Cup Vertices
@@ -54,13 +56,16 @@ def collision_detector(pot: Container, cup: Container):
 def barrier_collision_detector(container: Container, barrier: Barrier, map: Map):
     """
     collision_detector(pot: Container, cup: Container):
+    :param map:
     :param container:   Container Obj (either cup or pot)
     :param barrier:     Barrier Obj
     :return:        False if no collision happens, true otherwise
     """
 
-    # if container is no where near the barrier horizontally, there is no collision so return true immidiately to save power
-    if barrier.get_global_position(map.starting_dx) >= container.position_rect.x and barrier.get_global_position(map.starting_dx) <= container.position_rect.x + container.position_rect.width:
+    # if container is no where near the barrier horizontally, there is no collision so return true immediately to
+    # save power
+    if container.position_rect.x <= barrier.get_global_position(map.starting_dx) <= container.position_rect.x \
+            + container.position_rect.width:
         # get barrier tip points array
         barrier_tip_points = barrier.tip_points
         # get container top and bottom y coordinates
@@ -74,7 +79,8 @@ def barrier_collision_detector(container: Container, barrier: Barrier, map: Map)
                 return True
         # else condition is == 4
         else:
-            if (container_top_pos_y > barrier_tip_points[0] and container_bottom_pos_y < barrier_tip_points[1]) or (container_top_pos_y > barrier_tip_points[2] and container_bottom_pos_y < barrier_tip_points[3]):
+            if (container_top_pos_y > barrier_tip_points[0] and container_bottom_pos_y < barrier_tip_points[1]) or (
+                    container_top_pos_y > barrier_tip_points[2] and container_bottom_pos_y < barrier_tip_points[3]):
                 return False
             else:
                 logging.info('barrier hit')
