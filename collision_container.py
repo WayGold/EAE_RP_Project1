@@ -15,7 +15,7 @@ def collision_detector(pot: Container, cup: Container):
     collision_detector(pot: Container, cup: Container):
     :param pot:     Pot Container Obj
     :param cup:     Cup Container Obj
-    :return:        True if no collision happens, false otherwise
+    :return:        False if no collision happens, True otherwise
     """
 
     # Init Pot and Cup Vertices
@@ -28,7 +28,7 @@ def collision_detector(pot: Container, cup: Container):
                     (cup.position_rect.x, cup.position_rect.y + cup.position_rect.height),
                     (cup.position_rect.x + cup.position_rect.width, cup.position_rect.y + cup.position_rect.height)]
 
-    # Check each pot vertex, if any goes within the cup range, return false
+    # Check each pot vertex, if any goes within the cup range, return True
     for vertex in pot_vertices:
         if cup_vertices[0][0] <= vertex[0] <= cup_vertices[1][0] \
                 and cup_vertices[0][1] <= vertex[1] <= cup_vertices[2][1]:
