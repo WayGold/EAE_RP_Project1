@@ -157,7 +157,11 @@ def draw(window, map, obj_list, tea_drops, health):
 
     # Draw containers
     for i in obj_list:
-        window.blit(i.image, (i.position_rect.x, i.position_rect.y))
+            window.blit(i.image, (i.position_rect.x, i.position_rect.y))
+    
+    # Display Game Over image
+    if not is_game_on(health.life_count):
+        window.blit(pygame.image.load(ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
 
     # Draw tea drops
     for d in tea_drops:
@@ -171,6 +175,12 @@ def draw(window, map, obj_list, tea_drops, health):
 
 
     pygame.display.update()
+
+def is_game_on(life_count):
+    if life_count > 0:
+        return True
+    else:
+        return False
 
 
 def pot_control_listener(keys, pot):
@@ -255,46 +265,51 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
 
+    
         now = pygame.time.get_ticks()
+        if is_game_on(health.life_count):
+            if now - start_time > 400 and pot.teaLevel > 0:
+                qualified_drops.append(
+                    TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
+                pot.teaLevel -= 1
+                start_time = now
 
-        if now - start_time > 400 and pot.teaLevel > 0:
-            qualified_drops.append(
-                TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
-            pot.teaLevel -= 1
-            start_time = now
+            qualified_drops = drop_tea(qualified_drops, cup)
+            keys_pressed = pygame.key.get_pressed()
+            pot_control_listener(keys_pressed, pot)
+            cup_control_listener(keys_pressed, cup)
 
-        qualified_drops = drop_tea(qualified_drops, cup)
-        keys_pressed = pygame.key.get_pressed()
-        pot_control_listener(keys_pressed, pot)
-        cup_control_listener(keys_pressed, cup)
 
+
+            # Using the new can_receive_damage bool of containers to give some breathing room after taking a damage
+            # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds)
+            # Damage timer starts immidiately after a collision happens and counts to 3 and then can_receive_damage is set back to True
+            if cup.can_receive_damage and pot.can_receive_damage:
+                draw(window, game_map, [cup, pot], qualified_drops, health)
+                if collision_detector(pot, cup):
+                    damage_timer = now
+                    health.life_count -= 3
+                for barrier in barriers:
+                    if barrier_collision_detector(pot, barrier, game_map) or barrier_collision_detector(cup, barrier, game_map):
+                        damage_timer = now
+                        health.life_count -= 1
+            else:
+                time_passed = now - damage_timer
+                if time_passed < 500 or (time_passed > 1000 and time_passed < 1500) or (time_passed > 2000 and time_passed < 2500):
+                    draw(window, game_map, [], qualified_drops, health)
+                else:
+                    draw(window, game_map, [cup, pot], qualified_drops, health)
+            # Reset the damage timer 3 seconds after getting damaged
+                if now - damage_timer > DAMAGE_RECEIVING_CD:
+                    pot.can_receive_damage = True
+                    cup.can_receive_damage = True
+                    damage_timer = None
+            # Update TeaDrop Position
+            pot.tea_drop_position_update()
+        else :
+            draw(window, game_map, [], [], health)
         game_map.slideMap()
 
-        # Using the new can_receive_damage bool of containers to give some breathing room after taking a damage
-        # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds)
-        # Damage timer starts immidiately after a collision happens and counts to 3 and then can_receive_damage is set back to True
-        if cup.can_receive_damage and pot.can_receive_damage:
-            draw(window, game_map, [cup, pot], qualified_drops, health)
-            if collision_detector(pot, cup):
-                damage_timer = now
-                health.life_count -= 1
-            for barrier in barriers:
-                if barrier_collision_detector(pot, barrier, game_map) or barrier_collision_detector(cup, barrier, game_map):
-                    damage_timer = now
-                    health.life_count -= 1
-        else:
-            time_passed = now - damage_timer
-            if time_passed < 500 or (time_passed > 1000 and time_passed < 1500) or (time_passed > 2000 and time_passed < 2500):
-                draw(window, game_map, [], qualified_drops, health)
-            else:
-                draw(window, game_map, [cup, pot], qualified_drops, health)
-        # Reset the damage timer 3 seconds after getting damaged
-            if now - damage_timer > DAMAGE_RECEIVING_CD:
-                pot.can_receive_damage = True
-                cup.can_receive_damage = True
-                damage_timer = None
-        # Update TeaDrop Position
-        pot.tea_drop_position_update()
 
     pygame.quit()
 
