@@ -297,8 +297,8 @@ def main():
             cup_control_listener(keys_pressed, cup)
 
             # Using the new can_receive_damage bosol of containers to give some breathing room after taking a damage
-            # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds)
-            # Damage timer starts immidiately after a collision happens and counts to 3 and then can_receive_damage is set back to True
+            # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds) Damage timer starts immediately after a
+            # collision happens and counts to 3 and then can_receive_damage is set back to True
             if cup.can_receive_damage and pot.can_receive_damage:
                 draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea)
                 if collision_detector(pot, cup):
