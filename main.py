@@ -121,7 +121,7 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea):
     # Display Game Over image
     if map.are_delivery_zones_full():
         window.blit(pygame.image.load(ROOT_DIR + r'/image/you_win.png'), (WIDTH / 3, HEIGHT / 3))
-    elif health.life_count == 0:
+    elif health.life_count <= 0:
          window.blit(pygame.image.load(ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
 
     # Draw tea drops
@@ -266,7 +266,7 @@ def main():
                 draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea)
                 if collision_detector(pot, cup):
                     damage_timer = now
-                    health.life_count -= 3
+                    health.life_count = 0
                 for barrier in barriers:
                     if barrier.detect_collision(pot, game_map) or barrier.detect_collision(cup, game_map):
                         damage_timer = now
