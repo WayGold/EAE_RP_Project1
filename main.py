@@ -144,6 +144,12 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles):
         window.blit(deliver_here_image,
                     (zone.get_mirror_global_position(map.starting_dx), 0))
 
+        text_surface = myfont.render(
+        str(zone.tea_level)+ ' / ' + str(zone.tea_requirement), False, (0, 0, 0))
+        window.blit(text_surface, (zone.get_global_position(map.starting_dx) - 100, 35))
+        window.blit(text_surface, (zone.get_mirror_global_position(map.starting_dx) - 100, 35))
+        
+
     # Draw Pot and Cup
     for i in obj_list:
         window.blit(i.image, (i.position_rect.x, i.position_rect.y))
