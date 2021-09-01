@@ -128,6 +128,22 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles):
         window.blit(zone.image,
                     (zone.get_mirror_global_position(map.starting_dx), 0))
 
+
+    deliver_here_image = pygame.image.load(ROOT_DIR + r'/image/deliver_here.png')
+    # Draw delivery zones
+    for zone in map.delivery_zones:
+        window.blit(zone.image,
+                    (zone.get_global_position(map.starting_dx), 0))
+
+        window.blit(zone.image,
+                    (zone.get_mirror_global_position(map.starting_dx), 0))
+
+        window.blit(deliver_here_image,
+                    (zone.get_global_position(map.starting_dx), 0))
+
+        window.blit(deliver_here_image,
+                    (zone.get_mirror_global_position(map.starting_dx), 0))
+
     # Draw Pot and Cup
     for i in obj_list:
         window.blit(i.image, (i.position_rect.x, i.position_rect.y))
