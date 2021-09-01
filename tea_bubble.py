@@ -21,7 +21,10 @@ class TeaBubble:
     def __init__(self, pos_x, pos_y, image_path, refill_amount, width, height):
         self.position_rect = pygame.Rect(pos_x, pos_y, width, height)
         self.image_list = []
-        for image in os.listdir(image_path):
+        sorted_img = os.listdir(image_path)
+        sorted_img.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+        logging.info(sorted_img)
+        for image in sorted_img:
             self.image_list.append(pygame.image.load(os.path.join(image_path, image)).convert_alpha())
         self.refill_amount = refill_amount
         self.draw_index = 0
