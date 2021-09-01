@@ -111,6 +111,9 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea):
         window.blit(zone.image,
                     (zone.get_global_position(map.starting_dx), 0))
 
+        window.blit(zone.image,
+                    (zone.get_mirror_global_position(map.starting_dx), 0))           
+
     # Draw Pot and Cup
     for i in obj_list:
         window.blit(i.image, (i.position_rect.x, i.position_rect.y))
@@ -244,6 +247,7 @@ def main():
         if is_game_on(health.life_count, game_map):
             for zone in delivery_zones:
                 zone.detect_collision(cup, game_map)
+                zone.detect_mirror_collision(cup, game_map)
             if now - last_tea_drop_time > 400 and pot.tea_level > 0:
                 qualified_drops.append(
                     TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
