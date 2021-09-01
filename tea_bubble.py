@@ -1,3 +1,9 @@
+#
+#   tea_bubble.py
+#   Description:            Tea Bubble Class and Related Methods to Support Bubble Functionalities
+#   Author:                 Wei Zeng
+#   Date:                   Aug.31 2021
+#
 import os
 import logging
 import pygame
