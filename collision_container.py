@@ -17,7 +17,6 @@ def collision_detector(pot: Container, cup: Container):
     collision_detector(pot: Container, cup: Container):
     :param pot:     Pot Container Obj
     :param cup:     Cup Container Obj
-<<<<<<< HEAD
     :return:        False if no collision happens, True otherwise
     """
 
