@@ -151,8 +151,13 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles):
         
 
     # Draw Pot and Cup
+    obj_index = 0
     for i in obj_list:
         window.blit(i.image, (i.position_rect.x, i.position_rect.y))
+        if obj_index == 0:
+            tea_pot_surface = myfont.render(str(i.tea_level), False, (0, 0, 0))
+            window.blit(tea_pot_surface, (i.position_rect.x + 55, i.position_rect.y + 55))
+        obj_index += 1
 
     # Display Game Over image
     if map.are_delivery_zones_full():
