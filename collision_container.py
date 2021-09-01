@@ -4,6 +4,7 @@
 #   Author:                 Wei Zeng
 #   Date:                   Aug.26 2021
 #
+from tea_bubble import TeaBubble
 from barrier import Barrier
 import os
 import logging
@@ -48,6 +49,46 @@ def collision_detector(pot: Container, cup: Container):
             logging.info('cup and pot collided')
             cup.can_receive_damage = False
             pot.can_receive_damage = False
+            return True
+
+    return False
+
+
+def tea_bubble_collision_detector(pot: Container, tea_bubble: TeaBubble):
+    """
+    collision_detector(pot: Container, cup: Container):
+    :param pot:     Pot Container Obj
+    :param tea_bubble:     TeaBubble Obj
+    :return:        False if no collision happens, True otherwise
+    """
+
+    if (pot.position_rect.y +
+        pot.position_rect.height < tea_bubble.position_rect.y) or (
+            tea_bubble.position_rect.y +
+            tea_bubble.position_rect.height < pot.position_rect.y) or (pot.position_rect.x +
+                                                                       pot.position_rect.width < tea_bubble.position_rect.x) or (
+            tea_bubble.position_rect.x +
+            tea_bubble.position_rect.width < pot.position_rect.x):
+        return False
+
+    # Init Pot and tea_bubble Vertices
+    pot_vertices = [(pot.position_rect.x, pot.position_rect.y),
+                    (pot.position_rect.x + pot.position_rect.width, pot.position_rect.y),
+                    (pot.position_rect.x, pot.position_rect.y +
+                     pot.position_rect.height),
+                    (pot.position_rect.x + pot.position_rect.width, pot.position_rect.y + pot.position_rect.height)]
+    tea_bubble_vertices = [(tea_bubble.position_rect.x, tea_bubble.position_rect.y),
+                           (tea_bubble.position_rect.x +
+                            tea_bubble.position_rect.width, tea_bubble.position_rect.y),
+                           (tea_bubble.position_rect.x, tea_bubble.position_rect.y +
+                            tea_bubble.position_rect.height),
+                           (tea_bubble.position_rect.x + tea_bubble.position_rect.width, tea_bubble.position_rect.y + tea_bubble.position_rect.height)]
+
+    # Check each pot vertex, if any goes within the tea_bubble range, return True
+    for vertex in pot_vertices:
+        if tea_bubble_vertices[0][0] <= vertex[0] <= tea_bubble_vertices[1][0] \
+                and tea_bubble_vertices[0][1] <= vertex[1] <= tea_bubble_vertices[2][1]:
+            logging.info('tea_bubble and pot collided')
             return True
 
     return False
