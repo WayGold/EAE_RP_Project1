@@ -16,7 +16,7 @@ class DeliveryZone:
         self.tip_points = bNode.tips_list
         self.tea_level = 0
         self.is_full = False
-        self.tea_requirement = random.randint(10, 15)
+        self.tea_requirement = random.randint(35, 40)
         self.mirror_image_x_pos = 2400 + self.pos_x
 
     def get_global_position(self, map_pos_x):
