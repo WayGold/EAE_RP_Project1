@@ -98,7 +98,7 @@ def draw_bubble_animation(window, tea_bub: TeaBubble):
     :param tea_bub:     Tea Bubble Object To Be Drawn
     :return:            None
     """
-    logging.info('Drawing bubble with image at index: ' + str(tea_bub.draw_index))
+    #logging.info('Drawing bubble with image at index: ' + str(tea_bub.draw_index))
     window.blit(tea_bub.image_list[tea_bub.draw_index].convert_alpha(),
                 (tea_bub.position_rect.x, tea_bub.position_rect.y))
     if tea_bub.draw_index == len(tea_bub.image_list) - 1:
