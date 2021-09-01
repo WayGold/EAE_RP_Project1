@@ -4,6 +4,7 @@
 # Date: Aug.24 2021
 #
 
+from main_menu import MainMenu, uiButton
 from collision_container import *
 from barrier import Barrier
 from barrier_parser import load_txt
@@ -21,6 +22,7 @@ pygame.font.init()
 myfont = pygame.font.SysFont('Showcard Gothic', 30)
 
 # Macros
+GAME_ON = False
 DAMAGE_RECEIVING_CD = 3000  # milliseconds
 MOVING_SPEED = 7
 FPS = 60
@@ -76,9 +78,9 @@ class Container:
 
     # 143 106
 
-    def __init__(self, pos_x, pos_y, image_path, tea_level, h, w):
+    def __init__(self, pos_x, pos_y, image_path, tea_level, w, h):
         self.position_rect = pygame.Rect(
-            pos_x, pos_y, h, w)
+            pos_x, pos_y, w, h)
         self.image = pygame.image.load(
             image_path)
         self.tea_drop_position = (
@@ -142,7 +144,7 @@ def drop_tea(tea_drops, cup):
     return qualified
 
 
-def draw(window, map, obj_list, tea_drops, health, collected_tea):
+def draw(window, map, obj_list, tea_drops, health, collected_tea, main_menu):
     """
     draw(window, obj_list, tea_drops):
     :param health:
@@ -169,30 +171,35 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea):
         window.blit(i.image, (i.position_rect.x, i.position_rect.y))
 
     # Display Game Over image
-    if not is_game_on(health.life_count):
-        window.blit(pygame.image.load(ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
+    if not is_game_on(health.life_count, GAME_ON):
+        if not health.life_count > 0 : 
+            window.blit(pygame.image.load(ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
+        else:
+            main_menu.show_main_menu(window)
 
     # Draw tea drops
     for d in tea_drops:
         window.blit(d.image, (d.position_rect.x, d.position_rect.y))
 
     # Draw Healthbar
-    i = 0
-    while i < health.life_count:
-        window.blit(health.image, (health.health_bar_pos_x + i * 60, health.health_bar_pos_y))
-        i += 1
+    if GAME_ON:
+        i = 0
+        while i < health.life_count:
+            window.blit(health.image, (health.health_bar_pos_x + i * 60, health.health_bar_pos_y))
+            i += 1
 
-        # Init Collected Tea Display Text and Draw
-    textsurface = myfont.render('Tea Drops: ' + str(collected_tea), False, (0, 0, 0))
-    window.blit(textsurface, (1200, 70))
-    window.blit(pygame.image.load(
-        ROOT_DIR + r'/image/teadrop.png'), (1410, 70))
+    # Init Collected Tea Display Text and Draw
+    if GAME_ON:
+        textsurface = myfont.render('Tea Drops: ' + str(collected_tea), False, (0, 0, 0))
+        window.blit(textsurface, (1200, 70))
+        window.blit(pygame.image.load(
+            ROOT_DIR + r'/image/teadrop.png'), (1410, 70))
 
     pygame.display.update()
 
 
-def is_game_on(life_count):
-    if life_count > 0:
+def is_game_on(life_count, game_on):
+    if life_count > 0 and game_on:
         return True
     else:
         return False
@@ -272,10 +279,18 @@ def main():
     game_map = Map(ROOT_DIR + r'/image/Background.png', barriers)
     cup = Container(0, 600, ROOT_DIR + r'/image/teacup.png', 0, 101, 87)
     pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50, 143, 106)
-
+    
+    # Initialize Tea Data nodes
     collected_tea = 0
-
     qualified_drops = []
+
+    # Create Main Menu Components
+    def start_game():
+        GAME_ON = True
+
+    start_button = uiButton(start_game, 'Start', 200, 400 )
+    main_menu = MainMenu([start_button]) 
+
     # Main Execution Loop
     while run:
         clock.tick(FPS)
@@ -284,7 +299,7 @@ def main():
                 run = False
 
         now = pygame.time.get_ticks()
-        if is_game_on(health.life_count):
+        if is_game_on(health.life_count, GAME_ON):
             if now - last_tea_drop_time > 400 and pot.tea_level > 0:
                 qualified_drops.append(
                     TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
@@ -300,7 +315,7 @@ def main():
             # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds)
             # Damage timer starts immidiately after a collision happens and counts to 3 and then can_receive_damage is set back to True
             if cup.can_receive_damage and pot.can_receive_damage:
-                draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea)
+                draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea, main_menu)
                 if collision_detector(pot, cup):
                     damage_timer = now
                     health.life_count -= 3
@@ -312,9 +327,9 @@ def main():
             else:
                 time_passed = now - damage_timer
                 if time_passed < 500 or (1000 < time_passed < 1500) or (2000 < time_passed < 2500):
-                    draw(window, game_map, [], qualified_drops, health, collected_tea)
+                    draw(window, game_map, [], qualified_drops, health, collected_tea, main_menu)
                 else:
-                    draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea)
+                    draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea, main_menu)
                 # Reset the damage timer 3 seconds after getting damaged
                 if now - damage_timer > DAMAGE_RECEIVING_CD:
                     pot.can_receive_damage = True
@@ -323,7 +338,7 @@ def main():
             # Update TeaDrop Position
             pot.tea_drop_position_update()
         else:
-            draw(window, game_map, [], [], health, collected_tea)
+            draw(window, game_map, [], [], health, collected_tea, main_menu)
         game_map.slideMap()
 
     pygame.quit()
