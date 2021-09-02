@@ -6,10 +6,9 @@
 #
 import os
 import logging
-import pygame
 import random
-
-from container import Container
+import collision_container as cd
+from container import *
 
 # Init Root Directory
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -98,13 +97,32 @@ def draw_bubble_animation(window, tea_bub: TeaBubble):
     :param tea_bub:     Tea Bubble Object To Be Drawn
     :return:            None
     """
-    #logging.info('Drawing bubble with image at index: ' + str(tea_bub.draw_index))
+    # logging.info('Drawing bubble with image at index: ' + str(tea_bub.draw_index))
     window.blit(tea_bub.image_list[tea_bub.draw_index].convert_alpha(),
                 (tea_bub.position_rect.x, tea_bub.position_rect.y))
     if tea_bub.draw_index == len(tea_bub.image_list) - 1:
         tea_bub.draw_index = 0
     else:
         tea_bub.draw_index += 1
+
+
+def get_qualified_tea_bubble(tea_bubbles, pot):
+    """
+    get_qualified_tea_bubble(tea_bubbles, pot):
+    :param tea_bubbles:
+    :param pot:
+    :return:
+    """
+    qualified = []
+
+    for bub in tea_bubbles:
+        if not cd.tea_bubble_collision_detector(pot, bub):
+            qualified.append(bub)
+        else:
+            print('REFILLED')
+            refill_tea(pot, bub)
+
+    return qualified
 
 
 def test():
@@ -117,6 +135,7 @@ def test():
     pygame.display.set_caption("Tea-Mates")
     image_path = os.path.join(ROOT_DIR, 'image/tea_bubble')
     tea_bub = TeaBubble(800, 450, image_path, 20, 46, 51)
+    pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50, 143, 106)
 
     run = True
     clock = pygame.time.Clock()
@@ -132,12 +151,17 @@ def test():
             if event.type == pygame.QUIT:
                 run = False
 
+        keys_pressed = pygame.key.get_pressed()
+        pot_control_listener(keys_pressed, pot)
+
         # Setup White Background
         window.fill((255, 255, 255))
-
+        window.blit(pot.image, (pot.position_rect.x, pot.position_rect.y))
         new_bubble = gen_rand_tea_bubble_per_n_second(5, last_bubble_gen_time, image_path)
         if new_bubble is not None:
             all_bubble_list.append(new_bubble)
+
+        all_bubble_list = get_qualified_tea_bubble(all_bubble_list, pot)
         draw_all_tea_bubble(window, all_bubble_list)
         pygame.display.update()
 

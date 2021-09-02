@@ -1,6 +1,13 @@
+#
+# container.py      -   Container Obj Class, used for creating tea pot and tea cup
+# Author: Wei Zeng
+# Date: Aug.24 2021
+#
+
 import pygame
 
 CONTAINER_WIDTH, CONTAINER_HEIGHT = 180, 180
+MOVING_SPEED = 7
 
 
 class Container:
@@ -33,3 +40,45 @@ class Container:
         """
         self.tea_drop_position = (
             self.position_rect.x + self.position_rect.width - 3, self.position_rect.y + 18)
+
+
+def pot_control_listener(keys, pot):
+    """
+    pot_control_listener(keys, pot):
+    :param keys:                        Obj returned by pygame.key.get_pressed(), keys pressed basically
+    :param pot:                         Pot obj to be controlled
+    :return:                            Void, update position data of pot according to key input
+    """
+    # Go Up
+    if keys[pygame.K_w]:
+        pot.position_rect.y -= MOVING_SPEED
+    # Go Down
+    if keys[pygame.K_s]:
+        pot.position_rect.y += MOVING_SPEED
+    # Go Left
+    if keys[pygame.K_a]:
+        pot.position_rect.x -= MOVING_SPEED
+    # Go Right
+    if keys[pygame.K_d]:
+        pot.position_rect.x += MOVING_SPEED
+
+
+def cup_control_listener(keys, cup):
+    """
+    cup_control_listener(keys, cup):
+    :param keys:                        Obj returned by pygame.key.get_pressed(), keys pressed basically
+    :param cup:                         Cup obj to be controlled
+    :return:                            Void, update position data of pot according to key input
+    """
+    # Go Up
+    if keys[pygame.K_UP]:
+        cup.position_rect.y -= MOVING_SPEED
+    # Go Down
+    if keys[pygame.K_DOWN]:
+        cup.position_rect.y += MOVING_SPEED
+    # Go Left
+    if keys[pygame.K_LEFT]:
+        cup.position_rect.x -= MOVING_SPEED
+    # Go Right
+    if keys[pygame.K_RIGHT]:
+        cup.position_rect.x += MOVING_SPEED
