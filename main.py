@@ -193,7 +193,7 @@ def main():
     game_map = Map(ROOT_DIR + r'/image/Background.png',
                    barriers, delivery_zones)
     cup = Container(0, 600, ROOT_DIR + r'/image/teacup.png', 0, 101, 87)
-    pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50, 143, 106)
+    pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 20, 143, 106)
 
     collected_tea = 0
     tea_bub_image_path = os.path.join(ROOT_DIR, 'image/tea_bubble')

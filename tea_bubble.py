@@ -61,7 +61,7 @@ def gen_rand_tea_bubble_per_n_second(n: int, last_bubble_gen_time: list, bubble_
 
     # Every n Seconds
     if now - last_bubble_gen_time[0] > n * 1000:
-        tea_bub = TeaBubble(800, 450, bubble_image_path, 20, 46, 51)
+        tea_bub = TeaBubble(800, 450, bubble_image_path, 10, 46, 51)
         tea_bub.rand_tea_bub_pos()
         last_bubble_gen_time[0] = now
         return tea_bub
