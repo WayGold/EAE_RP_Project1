@@ -113,7 +113,7 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles, m
                 window.blit(tea_pot_surface, (i.position_rect.x + 55, i.position_rect.y + 55))
             obj_index += 1
 
-    # Display Game Over image
+    # Display End Game Content or Main Menu
     if map.are_delivery_zones_full():
         window.blit(pygame.image.load(
             ROOT_DIR + r'/image/you_win.png'), (WIDTH / 3, HEIGHT / 3))
