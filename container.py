@@ -28,7 +28,7 @@ class Container:
         self.image = pygame.image.load(
             image_path)
         self.tea_drop_position = (
-            self.position_rect.x, self.position_rect.y + CONTAINER_HEIGHT / 2)
+            self.position_rect.x + self.position_rect.width - 3, self.position_rect.y + 18)
         self.tea_level = tea_level
         self.can_receive_damage = True
 
