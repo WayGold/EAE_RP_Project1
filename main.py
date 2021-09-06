@@ -241,7 +241,7 @@ def main():
         now = pygame.time.get_ticks()
 
         if is_game_on(health.life_count, game_map):
-
+            pot.tea_drop_position_update()
             # Randomly Generate Tea Bubbles Every 5 Seconds
             new_bubble = gen_rand_tea_bubble_per_n_second(5, last_bubble_gen_time, tea_bub_image_path)
             if new_bubble is not None:
@@ -306,7 +306,6 @@ def main():
             if game_map.are_delivery_zones_full():
                 game_over_timer = now
                 GAME_ON = False
-            pot.tea_drop_position_update()
         else:
             draw(window, game_map, [], [], health,
                  collected_tea, all_bubble_list, main_menu)
