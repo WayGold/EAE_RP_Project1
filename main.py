@@ -155,6 +155,8 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, main_menu):
     :param window:                      The main game window object
     :return:                            Void, draw all passed in objects
     """
+
+    global GAME_ON
     # Setup White Background
     window.fill(WHITE)
 
@@ -167,14 +169,15 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, main_menu):
                     (barrier.get_global_position(map.starting_dx), 0))
 
     # Draw Pot and Cup
-    for i in obj_list:
-        window.blit(i.image, (i.position_rect.x, i.position_rect.y))
+    if GAME_ON:
+        for i in obj_list:
+            window.blit(i.image, (i.position_rect.x, i.position_rect.y))
 
-    # Display Game Over image
-    if not is_game_on(health.life_count, GAME_ON):
+    # Display Game Over image and Main Menu
+    if not is_game_on(health.life_count):
         if not health.life_count > 0 : 
             window.blit(pygame.image.load(ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
-        else:
+        elif not GAME_ON:
             main_menu.show_main_menu(window)
 
     # Draw tea drops
@@ -198,8 +201,9 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, main_menu):
     pygame.display.update()
 
 
-def is_game_on(life_count, game_on):
-    if life_count > 0 and game_on:
+def is_game_on(life_count):
+    global GAME_ON
+    if life_count > 0 and GAME_ON:
         return True
     else:
         return False
@@ -285,21 +289,36 @@ def main():
     qualified_drops = []
 
     # Create Main Menu Components
-    def start_game():
-        GAME_ON = True
+    game_over_timer = 0
+    def start_game(game_map: Map , healt_count):
+        global GAME_ON
 
-    start_button = uiButton(start_game, 'Start', 200, 400 )
-    main_menu = MainMenu([start_button]) 
+        if healt_count == 3:
+            if not GAME_ON:
+                GAME_ON = True
+                game_map.starting_dx = 0
 
-    # Main Execution Loop
+    main_menu = MainMenu([]) 
+    start_button = uiButton(start_game, 'Start', main_menu.pos_x + WIDTH / 5.5, 400)
+    main_menu.buttons.append(start_button)
+
+    # Main Execution LoopS
     while run:
+        global GAME_ON
         clock.tick(FPS)
+        now = pygame.time.get_ticks()
         for event in pygame.event.get():
+            if not GAME_ON and now - game_over_timer > 4000 and health.life_count <= 0:
+                main()
             if event.type == pygame.QUIT:
                 run = False
-
-        now = pygame.time.get_ticks()
-        if is_game_on(health.life_count, GAME_ON):
+            if event.type == pygame.MOUSEBUTTONUP:
+                mouse_click_pos = pygame.mouse.get_pos()
+                print(mouse_click_pos)
+                if start_button.collision_rect.collidepoint(mouse_click_pos):
+                    start_game(game_map, health.life_count)
+        
+        if is_game_on(health.life_count):
             if now - last_tea_drop_time > 400 and pot.tea_level > 0:
                 qualified_drops.append(
                     TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
@@ -319,11 +338,16 @@ def main():
                 if collision_detector(pot, cup):
                     damage_timer = now
                     health.life_count -= 3
+                    game_over_timer = now
+                    GAME_ON = False
                 for barrier in barriers:
                     if barrier_collision_detector(pot, barrier, game_map) or barrier_collision_detector(cup, barrier,
                                                                                                         game_map):
                         damage_timer = now
                         health.life_count -= 1
+                        if not health.life_count > 0:
+                            game_over_timer = now
+                            GAME_ON == False
             else:
                 time_passed = now - damage_timer
                 if time_passed < 500 or (1000 < time_passed < 1500) or (2000 < time_passed < 2500):
