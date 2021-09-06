@@ -36,29 +36,54 @@ def load_txt(file_path):
     """
     load_txt(file_path):
     :param file_path:       Load the barrier data txt file to a Node list
-    :return:                The list containing all barrier nodes
+    :return:                The list containing all barrier nodes and all delivery zone nodes
     """
     file = open(file_path, 'r')
     lines = file.readlines()
 
     all_barrier_nodes = []
+    all_delivery_nodes = []
+    working_list = []
 
     for line in lines:
-        # Get rid of endl char at end of line if exist and split into list by spaces
+        # Get rid of end line char at end of line if exist and split into list by spaces
         data_list = line.rstrip('\n').split(' ')
         logging.info(data_list)
         tips_list = []
 
-        # Extract tips data to list
-        for i, data in enumerate(data_list):
-            if i not in range(0, 4):
-                tips_list.append(int(data))
+        if len(data_list) == 1 and data_list[0] == '-':
+            # Save Barrier Nodes and Reset Working List
+            all_barrier_nodes = working_list
+            working_list = []
+            logging.info('Reading Delivery Zone Data...')
+        else:
+            # Extract tips data to list
+            for i, data in enumerate(data_list):
+                if i not in range(0, 4):
+                    tips_list.append(int(data))
 
-        # Append Node to list
-        all_barrier_nodes.append(BNode(int(data_list[0]), data_list[1], int(data_list[2]), int(data_list[3]), tips_list))
+            # Append Node to list
+            working_list.append(BNode(int(data_list[0]), data_list[1], int(data_list[2]), int(data_list[3]), tips_list))
+
+    # Save Delivery Nodes
+    all_delivery_nodes = working_list
 
     # Call str overloading function
+    logging.info('All Barriers: ')
     for node in all_barrier_nodes:
         logging.info(str(node))
 
-    return all_barrier_nodes
+    logging.info('All Delivery Zones: ')
+    for node in all_delivery_nodes:
+        logging.info(str(node))
+
+    return [all_barrier_nodes, all_delivery_nodes]
+
+
+def test():
+    load_txt('/Users/wzeng/EAE_Rapid/EAE_RP_Project1/barrier_data.txt')
+
+
+if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
+    test()

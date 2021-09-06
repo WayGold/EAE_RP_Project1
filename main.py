@@ -5,14 +5,18 @@
 #
 
 from main_menu import MainMenu, uiButton
+from delivery_zone import *
 from collision_container import *
-from barrier import Barrier
+from barrier import *
 from barrier_parser import load_txt
+from tea_bubble import *
+from tea_drop import *
 import os
 import pygame
 import logging
-from pygame.display import toggle_fullscreen
-from pygame.scrap import contains
+
+# from pygame.display import toggle_fullscreen
+# from pygame.scrap import contains
 
 # Init Root Directory
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +28,6 @@ myfont = pygame.font.SysFont('Showcard Gothic', 30)
 # Macros
 GAME_ON = False
 DAMAGE_RECEIVING_CD = 3000  # milliseconds
-MOVING_SPEED = 7
 FPS = 60
 WHITE = (255, 255, 255)
 WIDTH, HEIGHT = 1600, 900
@@ -33,84 +36,11 @@ HEALTH_UNIT_HEIGHT = 40
 BACKGROUND_WIDTH = 4000
 BACKGROUND_SPEED = 2
 CONTAINER_WIDTH, CONTAINER_HEIGHT = 180, 180
-TEA_DROP_WIDTH, TEA_DROP_HEIGHT = 9, 23
+
 TEA_CUP_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teacup.png'),
                                        (CONTAINER_WIDTH, CONTAINER_HEIGHT))
 TEA_POT_IMAGE = pygame.transform.scale(pygame.image.load(ROOT_DIR + r'/image/teapot.png'),
                                        (CONTAINER_WIDTH, CONTAINER_HEIGHT))
-
-
-class Map:
-    """
-    Map Class     -
-    Description:        Map Obj Class for background image and obsticle hosting
-    Class Vars:         starting_dx         -   The maps left most x coordinate for sliding purposes
-                        image               -   The transformed image object from inputted image path
-    """
-
-    def __init__(self, background_image_path, barriers):
-        self.image = pygame.transform.scale(pygame.image.load(background_image_path),
-                                            (BACKGROUND_WIDTH, HEIGHT)).convert_alpha()
-        self.starting_dx = 0
-        self.barriers = barriers
-
-    def slideMap(self):
-        """
-        tea_drop_position_update    -   Function to update the left most x coordinate of the map
-                                        object to give thge illusion of sliding and also
-                                        (resets to 0 to make it loop) 
-        :return:                    -   void
-        """
-        if self.starting_dx + BACKGROUND_WIDTH == WIDTH:
-            self.starting_dx = 0
-        self.starting_dx -= BACKGROUND_SPEED
-
-
-class Container:
-    """
-    Container Class     -
-    Description:        Container Obj Class for Teapot and Teacup
-    Class Vars:         position_rect       -   The bounding rect representing the container png
-                        image               -   The transformed image object from inputted image path
-                        tea_drop_position   -   The tea drop pouring start point
-                        tea_level            -   The level(amount) of tea currently being held in the container
-    """
-
-    # 143 106
-
-    def __init__(self, pos_x, pos_y, image_path, tea_level, w, h):
-        self.position_rect = pygame.Rect(
-            pos_x, pos_y, w, h)
-        self.image = pygame.image.load(
-            image_path)
-        self.tea_drop_position = (
-            self.position_rect.x, self.position_rect.y + CONTAINER_HEIGHT / 2)
-        self.tea_level = tea_level
-        self.can_receive_damage = True
-
-    def tea_drop_position_update(self):
-        """
-        tea_drop_position_update    -   Arbitrary Function to update the tea drop pouring start point according to the
-                                        (updated) position of the container
-        :return:                    -   void
-        """
-        self.tea_drop_position = (
-            self.position_rect.x + self.position_rect.width - 3, self.position_rect.y + 18)
-
-
-class TeaDrop:
-    """
-    TeaDrop Class   -
-    Description:    Tea Drop Object representing each drop of tea
-    Class Vars:     position_rect   -   The bounding rect representing the drop png
-                    image           -   The transformed image object from inputted image path
-    """
-
-    def __init__(self, pos_x, pos_y, image_path):
-        self.position_rect = pygame.Rect(
-            pos_x, pos_y, TEA_DROP_WIDTH, TEA_DROP_HEIGHT)
-        self.image = pygame.transform.scale(pygame.image.load(
-            image_path), (TEA_DROP_WIDTH, TEA_DROP_HEIGHT))
 
 
 class Health:
@@ -122,31 +52,10 @@ class Health:
         self.health_bar_pos_y = 70
 
 
-def drop_tea(tea_drops, cup):
-    """
-    drop_tea(tea_drops, cup):
-    :param tea_drops:           List of qualified drops(drops that should be drawn)
-    :param cup:                 Cup Object that could be filled up be catching tea drops
-    :return:                    Void, for each previously qualified drop, this function move them downward by 3 pixels
-                                and check whether any drop enter the tea cup. If any does, cup's tea level will go up
-                                by one and that specific tea drop would be considered not qualified(not to be drawn)
-    """
-    qualified = []
-
-    for teaDrop in tea_drops:
-        teaDrop.position_rect.y += 3
-        # Check whether tea drops goes beyond boundary and whether it is contained by the tea cup rect
-        if teaDrop.position_rect.y < HEIGHT - 1 and not cup.position_rect.contains(teaDrop.position_rect):
-            qualified.append(teaDrop)
-        elif cup.position_rect.contains(teaDrop.position_rect):
-            cup.tea_level += 1
-
-    return qualified
-
-
-def draw(window, map, obj_list, tea_drops, health, collected_tea, main_menu):
+def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles, main_menu):
     """
     draw(window, obj_list, tea_drops):
+    :param tea_bubbles:
     :param health:
     :param collected_tea:
     :param map:
@@ -167,17 +76,51 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, main_menu):
     for barrier in map.barriers:
         window.blit(barrier.image,
                     (barrier.get_global_position(map.starting_dx), 0))
+    # Draw delivery zones
+    for zone in map.delivery_zones:
+        window.blit(zone.image,
+                    (zone.get_global_position(map.starting_dx), 0))
 
-    # Draw Pot and Cup
+        window.blit(zone.image,
+                    (zone.get_mirror_global_position(map.starting_dx), 0))
+
+    deliver_here_image = pygame.image.load(ROOT_DIR + r'/image/deliver_here.png')
+    # Draw delivery zones
+    for zone in map.delivery_zones:
+        window.blit(zone.image,
+                    (zone.get_global_position(map.starting_dx), 0))
+
+        window.blit(zone.image,
+                    (zone.get_mirror_global_position(map.starting_dx), 0))
+
+        window.blit(deliver_here_image,
+                    (zone.get_global_position(map.starting_dx), 0))
+
+        window.blit(deliver_here_image,
+                    (zone.get_mirror_global_position(map.starting_dx), 0))
+
+        text_surface = myfont.render(
+            str(zone.tea_level) + ' / ' + str(zone.tea_requirement), False, (0, 0, 0))
+        window.blit(text_surface, (zone.get_global_position(map.starting_dx) - 100, 35))
+        window.blit(text_surface, (zone.get_mirror_global_position(map.starting_dx) - 100, 35))
+
     if GAME_ON:
+        obj_index = 0
         for i in obj_list:
             window.blit(i.image, (i.position_rect.x, i.position_rect.y))
+            if obj_index == 0:
+                tea_pot_surface = myfont.render(str(i.tea_level), False, (0, 0, 0))
+                window.blit(tea_pot_surface, (i.position_rect.x + 55, i.position_rect.y + 55))
+            obj_index += 1
 
-    # Display Game Over image and Main Menu
-    if not is_game_on(health.life_count):
-        if not health.life_count > 0 : 
-            window.blit(pygame.image.load(ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
-        elif not GAME_ON:
+    # Display Game Over image
+    if map.are_delivery_zones_full():
+        window.blit(pygame.image.load(
+            ROOT_DIR + r'/image/you_win.png'), (WIDTH / 3, HEIGHT / 3))
+    elif health.life_count <= 0:
+        window.blit(pygame.image.load(
+            ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
+    elif not GAME_ON:
             main_menu.show_main_menu(window)
 
     # Draw tea drops
@@ -188,67 +131,35 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, main_menu):
     if GAME_ON:
         i = 0
         while i < health.life_count:
-            window.blit(health.image, (health.health_bar_pos_x + i * 60, health.health_bar_pos_y))
+            window.blit(health.image, (health.health_bar_pos_x +
+                                       i * 60, health.health_bar_pos_y))
             i += 1
 
+    # Draw Tea Bubbles
+    draw_all_tea_bubble(window, tea_bubbles)
+
     # Init Collected Tea Display Text and Draw
-    if GAME_ON:
-        textsurface = myfont.render('Tea Drops: ' + str(collected_tea), False, (0, 0, 0))
-        window.blit(textsurface, (1200, 70))
-        window.blit(pygame.image.load(
-            ROOT_DIR + r'/image/teadrop.png'), (1410, 70))
+    textsurface = myfont.render(
+        'Tea Drops: ' + str(collected_tea), False, (0, 0, 0))
+    window.blit(textsurface, (1200, 70))
+    window.blit(pygame.image.load(
+        ROOT_DIR + r'/image/teadrop.png'), (1410, 70))
 
     pygame.display.update()
 
 
-def is_game_on(life_count):
+def is_game_on(life_count, map):
+    """
+    is_game_on(life_count, map):
+    :param life_count:
+    :param map:
+    :return:
+    """
     global GAME_ON
-    if life_count > 0 and GAME_ON:
+    if life_count > 0 and not map.are_delivery_zones_full() and GAME_ON:
         return True
     else:
         return False
-
-
-def pot_control_listener(keys, pot):
-    """
-    pot_control_listener(keys, pot):
-    :param keys:                        Obj returned by pygame.key.get_pressed(), keys pressed basically
-    :param pot:                         Pot obj to be controlled
-    :return:                            Void, update position data of pot according to key input
-    """
-    # Go Up
-    if keys[pygame.K_w]:
-        pot.position_rect.y -= MOVING_SPEED
-    # Go Down
-    if keys[pygame.K_s]:
-        pot.position_rect.y += MOVING_SPEED
-    # Go Left
-    if keys[pygame.K_a]:
-        pot.position_rect.x -= MOVING_SPEED
-    # Go Right
-    if keys[pygame.K_d]:
-        pot.position_rect.x += MOVING_SPEED
-
-
-def cup_control_listener(keys, cup):
-    """
-    cup_control_listener(keys, cup):
-    :param keys:                        Obj returned by pygame.key.get_pressed(), keys pressed basically
-    :param cup:                         Cup obj to be controlled
-    :return:                            Void, update position data of pot according to key input
-    """
-    # Go Up
-    if keys[pygame.K_UP]:
-        cup.position_rect.y -= MOVING_SPEED
-    # Go Down
-    if keys[pygame.K_DOWN]:
-        cup.position_rect.y += MOVING_SPEED
-    # Go Left
-    if keys[pygame.K_LEFT]:
-        cup.position_rect.x -= MOVING_SPEED
-    # Go Right
-    if keys[pygame.K_RIGHT]:
-        cup.position_rect.x += MOVING_SPEED
 
 
 def main():
@@ -262,12 +173,19 @@ def main():
     window = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tea-Mates")
 
-    # Fetch Barrier data
-    barriers_data = load_txt(os.path.join(ROOT_DIR, 'barrier_data.txt'))
+    # Fetch Barrier and Delivery Zone data
+    data = load_txt(os.path.join(ROOT_DIR, 'barrier_data.txt'))
+    barriers_data = data[0]
+    delivery_zone_data = data[1]
+
     barriers = []
+    delivery_zones = []
 
     for bNode in barriers_data:
         barriers.append(Barrier(bNode))
+
+    for bNode in delivery_zone_data:
+        delivery_zones.append(DeliveryZone(bNode))
 
     # Start game clock
     clock = pygame.time.Clock()
@@ -280,14 +198,18 @@ def main():
     health = Health(ROOT_DIR + r'/image/teacup.png')
 
     # Initialize game objects
-    game_map = Map(ROOT_DIR + r'/image/Background.png', barriers)
+    game_map = Map(ROOT_DIR + r'/image/Background.png',
+                   barriers, delivery_zones)
     cup = Container(0, 600, ROOT_DIR + r'/image/teacup.png', 0, 101, 87)
-    pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 50, 143, 106)
-    
-    # Initialize Tea Data nodes
-    collected_tea = 0
-    qualified_drops = []
+    pot = Container(0, 100, ROOT_DIR + r'/image/teapot.png', 20, 143, 106)
 
+    collected_tea = 0
+    tea_bub_image_path = os.path.join(ROOT_DIR, 'image/tea_bubble')
+
+    qualified_drops = []
+    last_bubble_gen_time = [start_time]
+    all_bubble_list = []
+    
     # Create Main Menu Components
     game_over_timer = 0
     def start_game(game_map: Map , healt_count):
@@ -302,13 +224,13 @@ def main():
     start_button = uiButton(start_game, 'Start', main_menu.pos_x + WIDTH / 5.5, 400)
     main_menu.buttons.append(start_button)
 
-    # Main Execution LoopS
+    # Main Execution Loop
     while run:
         global GAME_ON
         clock.tick(FPS)
         now = pygame.time.get_ticks()
         for event in pygame.event.get():
-            if not GAME_ON and now - game_over_timer > 4000 and health.life_count <= 0:
+            if ((not GAME_ON and health.life_count <= 0) or game_map.are_delivery_zones_full()) and now - game_over_timer > 4000:
                 main()
             if event.type == pygame.QUIT:
                 run = False
@@ -317,52 +239,79 @@ def main():
                 print(mouse_click_pos)
                 if start_button.collision_rect.collidepoint(mouse_click_pos):
                     start_game(game_map, health.life_count)
-        
-        if is_game_on(health.life_count):
+
+        now = pygame.time.get_ticks()
+
+        if is_game_on(health.life_count, game_map):
+
+            # Randomly Generate Tea Bubbles Every 5 Seconds
+            new_bubble = gen_rand_tea_bubble_per_n_second(5, last_bubble_gen_time, tea_bub_image_path)
+            if new_bubble is not None:
+                all_bubble_list.append(new_bubble)
+
+            for zone in delivery_zones:
+                zone.detect_collision(cup, game_map)
+                zone.detect_mirror_collision(cup, game_map)
+
+            # Drop a unit of tea every 0.4 seconds
             if now - last_tea_drop_time > 400 and pot.tea_level > 0:
                 qualified_drops.append(
                     TeaDrop(pot.tea_drop_position[0], pot.tea_drop_position[1], ROOT_DIR + r'/image/teadrop.png'))
                 pot.tea_level -= 1
                 last_tea_drop_time = now
+
             collected_tea = cup.tea_level
+
+            # Check Collision To Determine Whether to Draw
             qualified_drops = drop_tea(qualified_drops, cup)
+            all_bubble_list = get_qualified_tea_bubble(all_bubble_list, pot)
+
             keys_pressed = pygame.key.get_pressed()
             pot_control_listener(keys_pressed, pot)
             cup_control_listener(keys_pressed, cup)
 
+            # for bub in all_bubble_list:
+            #     if tea_bubble_collision_detector(pot, bub):
+            #         refill_tea(pot, bub)
+
             # Using the new can_receive_damage bosol of containers to give some breathing room after taking a damage
-            # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds)
-            # Damage timer starts immidiately after a collision happens and counts to 3 and then can_receive_damage is set back to True
+            # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds) Damage timer starts immediately after a
+            # collision happens and counts to 3 and then can_receive_damage is set back to True
             if cup.can_receive_damage and pot.can_receive_damage:
-                draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea, main_menu)
+                draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea, all_bubble_list, main_menu)
                 if collision_detector(pot, cup):
                     damage_timer = now
-                    health.life_count -= 3
+                    health.life_count = 0
                     game_over_timer = now
                     GAME_ON = False
                 for barrier in barriers:
-                    if barrier_collision_detector(pot, barrier, game_map) or barrier_collision_detector(cup, barrier,
-                                                                                                        game_map):
+                    if barrier.detect_collision(pot, game_map) or barrier.detect_collision(cup, game_map):
                         damage_timer = now
                         health.life_count -= 1
                         if not health.life_count > 0:
                             game_over_timer = now
-                            GAME_ON == False
+                            GAME_ON = False
             else:
                 time_passed = now - damage_timer
                 if time_passed < 500 or (1000 < time_passed < 1500) or (2000 < time_passed < 2500):
-                    draw(window, game_map, [], qualified_drops, health, collected_tea, main_menu)
+                    draw(window, game_map, [], qualified_drops,
+                         health, collected_tea, all_bubble_list, main_menu)
                 else:
-                    draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea, main_menu)
+                    draw(window, game_map, [
+                        pot, cup], qualified_drops, health, collected_tea, all_bubble_list, main_menu)
                 # Reset the damage timer 3 seconds after getting damaged
                 if now - damage_timer > DAMAGE_RECEIVING_CD:
                     pot.can_receive_damage = True
                     cup.can_receive_damage = True
                     damage_timer = None
             # Update TeaDrop Position
+            if game_map.are_delivery_zones_full():
+                game_over_timer = now
+                GAME_ON = False
             pot.tea_drop_position_update()
         else:
-            draw(window, game_map, [], [], health, collected_tea, main_menu)
+            draw(window, game_map, [], [], health,
+                 collected_tea, all_bubble_list, main_menu)
         game_map.slideMap()
 
     pygame.quit()
