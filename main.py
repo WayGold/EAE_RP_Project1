@@ -230,8 +230,6 @@ def main():
         clock.tick(FPS)
         now = pygame.time.get_ticks()
         for event in pygame.event.get():
-            if ((not GAME_ON and health.life_count <= 0) or game_map.are_delivery_zones_full()) and now - game_over_timer > 4000:
-                main()
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.MOUSEBUTTONUP:
@@ -313,6 +311,8 @@ def main():
             draw(window, game_map, [], [], health,
                  collected_tea, all_bubble_list, main_menu)
         game_map.slideMap()
+        if ((not GAME_ON and health.life_count <= 0) or game_map.are_delivery_zones_full()) and now - game_over_timer > 4000:
+                main()
 
     pygame.quit()
 
