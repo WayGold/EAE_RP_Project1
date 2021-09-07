@@ -4,6 +4,7 @@
 # Date: Aug.24 2021
 #
 
+from main_menu import MainMenu, uiButton
 from delivery_zone import *
 from collision_container import *
 from barrier import *
@@ -25,6 +26,7 @@ pygame.font.init()
 myfont = pygame.font.SysFont('Showcard Gothic', 30)
 
 # Macros
+GAME_ON = False
 DAMAGE_RECEIVING_CD = 3000  # milliseconds
 FPS = 60
 WHITE = (255, 255, 255)
@@ -50,7 +52,7 @@ class Health:
         self.health_bar_pos_y = 70
 
 
-def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles):
+def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles, main_menu):
     """
     draw(window, obj_list, tea_drops):
     :param tea_bubbles:
@@ -62,6 +64,8 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles):
     :param window:                      The main game window object
     :return:                            Void, draw all passed in objects
     """
+
+    global GAME_ON
     # Setup White Background
     window.fill(WHITE)
 
@@ -100,33 +104,36 @@ def draw(window, map, obj_list, tea_drops, health, collected_tea, tea_bubbles):
         window.blit(text_surface, (zone.get_global_position(map.starting_dx) - 100, 35))
         window.blit(text_surface, (zone.get_mirror_global_position(map.starting_dx) - 100, 35))
 
-    # Draw Pot and Cup
-    obj_index = 0
-    for i in obj_list:
-        window.blit(i.image, (i.position_rect.x, i.position_rect.y))
-        if obj_index == 0:
-            tea_pot_surface = myfont.render(str(i.tea_level), False, (0, 0, 0))
-            window.blit(tea_pot_surface, (i.position_rect.x + 55, i.position_rect.y + 55))
-        obj_index += 1
+    if GAME_ON:
+        obj_index = 0
+        for i in obj_list:
+            window.blit(i.image, (i.position_rect.x, i.position_rect.y))
+            if obj_index == 0:
+                tea_pot_surface = myfont.render(str(i.tea_level), False, (0, 0, 0))
+                window.blit(tea_pot_surface, (i.position_rect.x + 55, i.position_rect.y + 55))
+            obj_index += 1
 
-    # Display Game Over image
+    # Display End Game Content or Main Menu
     if map.are_delivery_zones_full():
         window.blit(pygame.image.load(
             ROOT_DIR + r'/image/you_win.png'), (WIDTH / 3, HEIGHT / 3))
     elif health.life_count <= 0:
         window.blit(pygame.image.load(
             ROOT_DIR + r'/image/game_over.png'), (WIDTH / 4, HEIGHT / 6))
+    elif not GAME_ON:
+            main_menu.show_main_menu(window)
 
     # Draw tea drops
     for d in tea_drops:
         window.blit(d.image, (d.position_rect.x, d.position_rect.y))
 
     # Draw Healthbar
-    i = 0
-    while i < health.life_count:
-        window.blit(health.image, (health.health_bar_pos_x +
-                                   i * 60, health.health_bar_pos_y))
-        i += 1
+    if GAME_ON:
+        i = 0
+        while i < health.life_count:
+            window.blit(health.image, (health.health_bar_pos_x +
+                                       i * 60, health.health_bar_pos_y))
+            i += 1
 
     # Draw Tea Bubbles
     draw_all_tea_bubble(window, tea_bubbles)
@@ -148,7 +155,8 @@ def is_game_on(life_count, map):
     :param map:
     :return:
     """
-    if life_count > 0 and not map.are_delivery_zones_full():
+    global GAME_ON
+    if life_count > 0 and not map.are_delivery_zones_full() and GAME_ON:
         return True
     else:
         return False
@@ -201,18 +209,39 @@ def main():
     qualified_drops = []
     last_bubble_gen_time = [start_time]
     all_bubble_list = []
+    
+    # Create Main Menu Components
+    game_over_timer = 0
+    def start_game(game_map: Map , healt_count):
+        global GAME_ON
+
+        if healt_count == 3:
+            if not GAME_ON:
+                GAME_ON = True
+                game_map.starting_dx = 0
+
+    main_menu = MainMenu([]) 
+    start_button = uiButton(start_game, 'Start', main_menu.pos_x + WIDTH / 5.5, 400)
+    main_menu.buttons.append(start_button)
 
     # Main Execution Loop
     while run:
+        global GAME_ON
         clock.tick(FPS)
+        now = pygame.time.get_ticks()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            if event.type == pygame.MOUSEBUTTONUP:
+                mouse_click_pos = pygame.mouse.get_pos()
+                print(mouse_click_pos)
+                if start_button.collision_rect.collidepoint(mouse_click_pos):
+                    start_game(game_map, health.life_count)
 
         now = pygame.time.get_ticks()
 
         if is_game_on(health.life_count, game_map):
-
+            pot.tea_drop_position_update()
             # Randomly Generate Tea Bubbles Every 5 Seconds
             new_bubble = gen_rand_tea_bubble_per_n_second(5, last_bubble_gen_time, tea_bub_image_path)
             if new_bubble is not None:
@@ -247,33 +276,42 @@ def main():
             # DAMAGE_RECEIVING_CD is set to 3000 milliseconds (3 seconds) Damage timer starts immediately after a
             # collision happens and counts to 3 and then can_receive_damage is set back to True
             if cup.can_receive_damage and pot.can_receive_damage:
-                draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea, all_bubble_list)
+                draw(window, game_map, [pot, cup], qualified_drops, health, collected_tea, all_bubble_list, main_menu)
                 if collision_detector(pot, cup):
                     damage_timer = now
                     health.life_count = 0
+                    game_over_timer = now
+                    GAME_ON = False
                 for barrier in barriers:
                     if barrier.detect_collision(pot, game_map) or barrier.detect_collision(cup, game_map):
                         damage_timer = now
                         health.life_count -= 1
+                        if not health.life_count > 0:
+                            game_over_timer = now
+                            GAME_ON = False
             else:
                 time_passed = now - damage_timer
                 if time_passed < 500 or (1000 < time_passed < 1500) or (2000 < time_passed < 2500):
                     draw(window, game_map, [], qualified_drops,
-                         health, collected_tea, all_bubble_list)
+                         health, collected_tea, all_bubble_list, main_menu)
                 else:
                     draw(window, game_map, [
-                        pot, cup], qualified_drops, health, collected_tea, all_bubble_list)
+                        pot, cup], qualified_drops, health, collected_tea, all_bubble_list, main_menu)
                 # Reset the damage timer 3 seconds after getting damaged
                 if now - damage_timer > DAMAGE_RECEIVING_CD:
                     pot.can_receive_damage = True
                     cup.can_receive_damage = True
                     damage_timer = None
             # Update TeaDrop Position
-            pot.tea_drop_position_update()
+            if game_map.are_delivery_zones_full():
+                game_over_timer = now
+                GAME_ON = False
         else:
             draw(window, game_map, [], [], health,
-                 collected_tea, all_bubble_list)
+                 collected_tea, all_bubble_list, main_menu)
         game_map.slideMap()
+        if ((not GAME_ON and health.life_count <= 0) or game_map.are_delivery_zones_full()) and now - game_over_timer > 4000:
+                main()
 
     pygame.quit()
 

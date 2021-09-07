@@ -129,3 +129,7 @@ dmypy.json
 .pyre/
 venv
 .idea
+
+# Pyinstaller Build
+build
+dist

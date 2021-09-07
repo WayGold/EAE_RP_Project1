@@ -43,6 +43,8 @@ class DeliveryZone:
             else:
                 self.tea_level += container.tea_level
                 container.tea_level = 0
+                if self.tea_requirement == self.tea_level:
+                    self.is_full = True
             
             return True
         else:
